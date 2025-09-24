@@ -11,7 +11,8 @@ from strands import Agent, tool
 from config import get_config
 from sleeper_tools import (
     get_nfl_state, get_league_info, get_team_data, get_matchup_data,
-    get_trending_players, get_draft_analysis, calculate_league_averages
+    get_trending_players, get_draft_analysis, calculate_league_averages,
+    get_all_rosters_with_users, get_player_details
 )
 from web_tools import (
     search_player_news, search_fantasy_trends, search_team_analysis,
@@ -29,7 +30,7 @@ class FantasyFootballRoastAgent:
             model=config["model_id"],
             system_prompt=self._get_system_prompt(),
             tools=[
-                # Sleeper API Tools
+                # Sleeper API Tools - for raw data gathering
                 get_nfl_state,
                 get_league_info, 
                 get_team_data,
@@ -37,20 +38,20 @@ class FantasyFootballRoastAgent:
                 get_trending_players,
                 get_draft_analysis,
                 calculate_league_averages,
-                # Web Search Tools
+                get_all_rosters_with_users,
+                get_player_details,
+                # Web Search Tools - for current context and investigation
                 search_player_news,
                 search_fantasy_trends,
                 search_team_analysis,
                 search_trade_analysis,
                 search_injury_reports,
-                # Report Generation Tools
-                self._create_team_snapshot,
-                self._create_draft_analysis,
-                self._create_last_week_recap,
-                self._create_matchup_preview,
-                self._create_roster_recommendations,
-                self._create_league_prognosis,
-                self._create_final_score
+                # Investigation and Analysis Tools
+                self._investigate_last_week_matchup,
+                self._analyze_draft_vs_current_performance,
+                self._find_league_context,
+                self._research_upcoming_opponent,
+                self._generate_section_content
             ]
         )
         
@@ -59,529 +60,457 @@ class FantasyFootballRoastAgent:
     
     def _get_system_prompt(self) -> str:
         """Get the roast agent's system prompt"""
-        return f"""You are the MOST SAVAGE fantasy football roast agent ever created. Your job is to generate BRUTALLY HONEST, hilariously snarky fantasy football reports that absolutely ROAST the target team while providing legitimate analysis.
+        return f"""You are the MOST SAVAGE fantasy football roast agent ever created. Your job is to investigate, analyze, and roast fantasy football teams with BRUTAL HONESTY and hilarious snark.
 
-**YOUR PERSONALITY:**
-- Maximum snark and attitude
-- Ruthlessly honest about bad decisions
-- Zero mercy for poor performance
-- Creative with insults but stay fantasy football focused
-- Use humor to deliver harsh truths
-- Never hold back criticism
+**YOUR MISSION:**
+You are an investigative fantasy football analyst. Use ALL available tools to gather data, cross-reference information, and discover the truth about this team's performance. Then deliver that truth with maximum snark.
 
-**ANALYSIS STYLE:**
-- Always provide specific data and examples
-- Compare performance to league averages
-- Point out obvious mistakes and missed opportunities
-- Use player names, not just IDs
-- Quantify everything possible
-- Make predictions with confidence (even if wrong)
+**INVESTIGATION APPROACH:**
+1. Gather comprehensive data using Sleeper API tools
+2. Research current player news and trends using web search
+3. Cross-reference performance data across multiple sources
+4. Find specific examples of bad decisions and missed opportunities
+5. Compare to league averages and other teams for context
+6. Search for news/injuries that explain (or don't excuse) poor choices
 
-**ROAST GUIDELINES:**
-- Everything is fair game for criticism
-- Bad draft picks deserve extra roasting
-- Poor lineup decisions should be mocked
-- Low scores need savage commentary
-- Bench players outscoring starters = prime roast material
-- Trading mistakes should be highlighted
-- Make fun of team names if they're terrible
+**ROASTING STYLE:**
+- Snarky but TRUTHFUL - if someone's doing well, give credit (with attitude)
+- SPECIFIC examples - name players, cite exact decisions, show numbers
+- INVESTIGATIVE depth - dig into WHY things went wrong
+- LEAGUE CONTEXT - compare to other teams, reference league trends
+- PLAYER-SPECIFIC analysis - research current news, injury status, trends
 
-**REPORT STRUCTURE:**
-Generate sections one at a time when called. Each section should be:
-1. Data-driven with specific numbers
-2. Snarky and entertaining
-3. Helpful despite the roasting
-4. HTML formatted for the final report
+**CRITICAL INVESTIGATION INSTRUCTIONS:**
+- **Multi-Tool Analysis:** Use 3-5+ tools per section to build comprehensive picture
+- **Follow Your Instincts:** If something seems suspicious, investigate further
+- **Web Search Strategy:** Search for player news when you see unexpected performances
+- **Cross-Reference Everything:** Draft picks vs. current performance, bench vs. starters, opponent strengths vs. user weaknesses
+- **Question Everything:** Why did they lose? Why did they draft that player? Why didn't they pick up trending players?
+- **League Context:** Always compare to what other teams are doing
+- **Dig Deeper:** If a player underperformed, find out why (injury? matchup? trend?)
+- **Connect the Dots:** Link patterns across sections (draft mistakes → current roster holes → poor performance)
+- **Trust the Data:** Let the investigation lead to the most savage but truthful roasts
 
-Today's date: {datetime.now().strftime('%B %d, %Y')}
-Current season: {config['season']}
+**SECTION STRUCTURE & INVESTIGATION FRAMEWORKS:**
+Generate exactly 7 sections. For each, consider these investigative angles (pursue the most compelling ones):
 
-Remember: Be savage but stay focused on fantasy football. The goal is entertainment AND analysis!"""
+## 1. **Team Snapshot** - The Foundation Roast
+**Investigate:** Record context, league positioning, point production patterns
+**Consider:** What's their story? Overperforming/underperforming? Lucky wins? Close losses? How do they compare to league average? What does their team name say about them? Any obvious patterns in their performance?
+**Roast Angles:** Mediocrity, false confidence, consistent underachievement, lucky breaks
+**Data to Explore:** Win/loss record, points for/against, league rank, strength of schedule
+
+## 2. **Draft Autopsy** - Where It All Went Wrong (Or Right)
+**Investigate:** Draft position strategy, pick performance vs. ADP, current roster relevance
+**Consider:** Which draft picks are still starting? Which are benchwarmer failures? Any obvious reaches or steals? How do their picks compare to what was available? Any injury-prone picks? Positional balance mistakes?
+**Roast Angles:** Terrible reaches, missing obvious steals, positional imbalance, outdated player evaluation
+**Data to Explore:** Draft order, current performance of picks, players available at each pick, current starters vs. drafted players
+
+## 3. **Last Week's Matchup** - The Weekly Performance Analysis  
+**Investigate:** Actual opponent matchup, lineup optimization, bench point analysis, game results
+**Consider:** Who was their opponent and why did they lose/win? Which starters underperformed? How many points left on bench? Any obvious lineup mistakes? Injury situations they ignored? Did they start players on bye weeks? What would optimal lineup have scored? How did they perform relative to expectations?
+**Roast Angles:** Lineup mistakes, ignoring injury reports, underperformance, leaving points on bench, poor game management
+**Data to Explore:** Opponent identity, starter vs. bench performance, injury news, player projections, win/loss analysis
+
+## 4. **Upcoming Battle Preview** - Predicting the Next Disaster
+**Investigate:** Next opponent strengths/weaknesses, matchup advantages, lineup strategy
+**Consider:** Who's their next opponent and what's their recent form? What are opponent's weaknesses to exploit? Any key positional battles? Injury concerns for either team? Historical head-to-head? What could go wrong with their lineup?
+**Roast Angles:** Outmatched opponent, poor matchup planning, predictable lineup mistakes
+**Data to Explore:** Opponent recent performance, positional matchups, injury reports, historical data
+
+## 5. **Roster Intervention** - The Waiver Wire Therapy Session
+**Investigate:** Roster holes, trending pickups, drop candidates, trade possibilities
+**Consider:** What positions need help? Who's trending that they missed? Which bench players are useless? Any obvious drops everyone else made? What trades could help them? Are they active on waivers or lazy?
+**Roast Angles:** Missing obvious pickups, holding onto dead weight, poor trade evaluation, waiver wire negligence
+**Data to Explore:** Trending adds/drops, roster composition, available players, recent transactions
+
+## 6. **Playoff Reality Check** - Mathematical Brutality
+**Investigate:** Current standing, remaining schedule, playoff probability, path to success
+**Consider:** What's their realistic playoff chance? How hard is their remaining schedule? What needs to happen for them to make playoffs? Are they in denial about their chances? Any mathematical elimination scenarios?
+**Roast Angles:** False hope, mathematical impossibility, easier path that they're missing
+**Data to Explore:** League standings, remaining matchups, playoff scenarios, schedule difficulty
+
+## 7. **Final Verdict** - The Savage Synthesis
+**Investigate:** Overall team assessment, season narrative, future outlook
+**Consider:** What's the overarching story of their season? Consistent themes in their failures/successes? What would they need to change to improve? Any redeeming qualities? How do they compare to league mates?
+**Roast Angles:** Synthesize all previous roasts into final judgment, predict future failures
+**Data to Explore:** All previous analysis, league context, improvement possibilities
+
+**TODAY'S CONTEXT:**
+- Date: {datetime.now().strftime('%B %d, %Y')}
+- Season: {config['season']}
+- League: {config['league_id']}
+
+Remember: Be a detective first, roaster second. Gather the evidence, then deliver the verdict with maximum entertainment value!"""
 
     @tool
-    def _create_team_snapshot(self, display_name: str) -> Dict[str, Any]:
-        """Create the team snapshot section with maximum snark"""
+    def _investigate_last_week_matchup(self, display_name: str, week: int) -> Dict[str, Any]:
+        """Deep dive investigation of last week's matchup including opponent analysis"""
         try:
-            # Get all necessary data
+            # Get team data to find roster_id
             team_data = get_team_data(display_name)
             if not team_data["success"]:
-                return {"success": False, "error": team_data["error"]}
+                return {"success": False, "error": "Could not find team data"}
             
-            averages = calculate_league_averages()
-            if not averages["success"]:
-                return {"success": False, "error": "Failed to get league averages"}
+            roster_id = team_data["data"]["roster_id"]
             
-            team = team_data["data"]
-            avg_data = averages["data"]
-            
-            # Calculate some stats
-            total_games = team["wins"] + team["losses"] + team["ties"]
-            win_pct = (team["wins"] / total_games * 100) if total_games > 0 else 0
-            
-            # Generate savage commentary
-            record_roast = self._roast_record(team["wins"], team["losses"], win_pct)
-            points_roast = self._roast_points(team["points_for"], avg_data["avg_points_for"])
-            rank_roast = self._roast_ranking(team["league_rank"], team["total_teams"])
-            
-            # Get team name
-            team_name = team["user_info"].get("metadata", {}).get("team_name", display_name)
-            
-            content = f"""
-            <h2>📊 Team Snapshot</h2>
-            <div class="league-info">
-                <h3>Your Team: {team_name}</h3>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <span class="stat-value">{team["wins"]}-{team["losses"]}</span>
-                        <div class="stat-label">Record</div>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-value">{team["points_for"]}</span>
-                        <div class="stat-label">Total Points</div>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-value">#{team["league_rank"]}</span>
-                        <div class="stat-label">League Rank</div>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-value">{avg_data["avg_points_for"]}</span>
-                        <div class="stat-label">League Avg</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="grade">Grade: {self._calculate_team_grade(team, avg_data)}</div>
-            
-            <div class="roast-text">
-                {record_roast} {points_roast} {rank_roast}
-                
-                Your team name "{team_name}" is almost as disappointing as your performance this season. 
-                You're currently sitting at #{team["league_rank"]} out of {team["total_teams"]} teams, which means 
-                you're closer to last place than you'd like to admit.
-                
-                But hey, at least you showed up! That's more than we can say for some of your players' performances.
-            </div>
-            """
-            
-            return {
-                "success": True, 
-                "content": content,
-                "team_data": team
-            }
-            
-        except Exception as e:
-            return {"success": False, "error": f"Team snapshot error: {str(e)}"}
-    
-    @tool 
-    def _create_draft_analysis(self, draft_id: str, target_roster_id: int) -> Dict[str, Any]:
-        """Analyze draft performance with brutal honesty"""
-        try:
-            if not draft_id:
-                return {"success": False, "error": "No draft data available"}
-            
-            draft_data = get_draft_analysis(draft_id)
-            if not draft_data["success"]:
-                return {"success": False, "error": "Failed to get draft data"}
-            
-            # Filter picks for target user
-            user_picks = [pick for pick in draft_data["data"]["picks"] 
-                         if pick["roster_id"] == target_roster_id]
-            
-            if not user_picks:
-                return {"success": False, "error": "No draft picks found for user"}
-            
-            # Analyze picks
-            draft_position = user_picks[0]["draft_slot"] if user_picks else "Unknown"
-            best_pick = self._find_best_pick(user_picks)
-            worst_pick = self._find_worst_pick(user_picks)
-            draft_grade = self._grade_draft(user_picks)
-            
-            content = f"""
-            <h2>📝 Draft Analysis</h2>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-value">{draft_position}</span>
-                    <div class="stat-label">Draft Position</div>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-value">{len(user_picks)}</span>
-                    <div class="stat-label">Total Picks</div>
-                </div>
-            </div>
-            
-            <h3>Best Pick: {best_pick["player_name"]} (Round {best_pick["round"]})</h3>
-            <h3>Worst Pick: {worst_pick["player_name"]} (Round {worst_pick["round"]})</h3>
-            
-            <div class="grade">Draft Grade: {draft_grade}</div>
-            
-            <div class="roast-text">
-                Your draft was about as predictable as a bad romantic comedy. You took {best_pick["player_name"]} 
-                in round {best_pick["round"]}, which was actually smart - probably the only good decision you made all night.
-                
-                But then you went and ruined it by selecting {worst_pick["player_name"]} in round {worst_pick["round"]}. 
-                What were you thinking? Were you drafting for 2019? Did someone hack your account?
-                
-                Overall draft grade: {draft_grade}. You managed to avoid complete disaster, which in fantasy football 
-                is basically a participation trophy.
-            </div>
-            """
-            
-            return {"success": True, "content": content}
-            
-        except Exception as e:
-            return {"success": False, "error": f"Draft analysis error: {str(e)}"}
-    
-    @tool
-    def _create_last_week_recap(self, display_name: str, week: int) -> Dict[str, Any]:
-        """Roast last week's performance"""
-        try:
-            # Get team data and matchup data
-            team_data = get_team_data(display_name)
-            if not team_data["success"]:
-                return team_data
-            
+            # Get matchup data for the week
             matchup_data = get_matchup_data(week)
             if not matchup_data["success"]:
-                return {"success": False, "error": "No recent matchup data available"}
+                return {"success": False, "error": f"No matchup data for week {week}"}
             
-            # Find user's matchup
-            team = team_data["data"]
-            roster_id = team["roster_id"]
-            
+            # Find user's matchup and opponent
             user_matchup = None
+            opponent_matchup = None
+            matchup_id = None
+            
+            # First find the user's matchup
             for matchup in matchup_data["data"]["matchups"]:
                 if matchup.get("roster_id") == roster_id:
                     user_matchup = matchup
+                    matchup_id = matchup.get("matchup_id")
                     break
             
-            if not user_matchup:
-                return {"success": False, "error": "Matchup data not found"}
+            if not user_matchup or not matchup_id:
+                return {"success": False, "error": "Could not find user's matchup"}
             
-            score = user_matchup.get("points", 0)
+            # Find opponent's matchup (same matchup_id, different roster_id)
+            for matchup in matchup_data["data"]["matchups"]:
+                if (matchup.get("matchup_id") == matchup_id and 
+                    matchup.get("roster_id") != roster_id):
+                    opponent_matchup = matchup
+                    break
             
-            # Calculate optimal lineup (placeholder - would need more complex analysis)
-            optimal_score = score * 1.15  # Assume could have scored 15% more optimally
-            points_left = optimal_score - score
+            if not opponent_matchup:
+                return {"success": False, "error": "Could not find opponent matchup"}
             
-            content = f"""
-            <h2>📈 Last Week Recap</h2>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-value">{score}</span>
-                    <div class="stat-label">Final Score</div>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-value">{points_left:.1f}</span>
-                    <div class="stat-label">Points Left on Bench</div>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-value">{(score/optimal_score*100):.0f}%</span>
-                    <div class="stat-label">Optimal %</div>
-                </div>
-            </div>
+            # Get league info to map roster_id to user
+            league_info = get_league_info()
+            opponent_user = None
+            if league_info["success"]:
+                # Find opponent user info
+                for user in league_info["data"]["users"]:
+                    # Get their roster to match roster_id
+                    for roster in league_info["data"].get("rosters", []):
+                        if (roster.get("roster_id") == opponent_matchup.get("roster_id") and
+                            roster.get("owner_id") == user.get("user_id")):
+                            opponent_user = user
+                            break
+                    if opponent_user:
+                        break
             
-            <div class="roast-text">
-                Last week you scored {score} points, which is about as impressive as a participation ribbon. 
-                You left {points_left:.1f} points on your bench, which means you basically shot yourself in the foot 
-                before the games even started.
-                
-                Your lineup decisions were questionable at best. Did you set your lineup while blindfolded? 
-                Or maybe you let your pet goldfish make the calls?
-                
-                You achieved {(score/optimal_score*100):.0f}% of your optimal lineup, which means you're about as 
-                efficient as a screen door on a submarine. Try checking the injury reports next time!
-            </div>
-            """
-            
-            return {"success": True, "content": content}
-            
-        except Exception as e:
-            return {"success": False, "error": f"Last week recap error: {str(e)}"}
-    
-    @tool
-    def _create_matchup_preview(self, display_name: str, current_week: int) -> Dict[str, Any]:
-        """Preview next matchup with predictions"""
-        try:
-            # This would need more complex logic to find actual opponent
-            # For now, provide general matchup analysis
-            
-            content = f"""
-            <h2>⚡ Next Matchup Preview</h2>
-            <div class="matchup-preview">
-                <h3>Week {current_week} Opponent Analysis</h3>
-                <div class="vs-text">YOU vs SOMEONE WHO MIGHT ACTUALLY KNOW WHAT THEY'RE DOING</div>
-                
-                <div class="roast-text">
-                    Your upcoming matchup is going to be interesting, and by interesting I mean painful to watch. 
-                    Based on your recent performance, you're going to need a miracle, three lucky breaks, 
-                    and your opponent to forget to set their lineup.
-                    
-                    Key positional battle: Your entire team vs basic competency.
-                    
-                    Prediction: You'll probably lose, but at least you'll have fun doing it. 
-                    Maybe try starting players who are actually healthy this week?
-                </div>
-            </div>
-            """
-            
-            return {"success": True, "content": content}
+            return {
+                "success": True,
+                "data": {
+                    "week": week,
+                    "user_matchup": user_matchup,
+                    "opponent_matchup": opponent_matchup,
+                    "opponent_user": opponent_user,
+                    "matchup_id": matchup_id,
+                    "user_score": user_matchup.get("points", 0),
+                    "opponent_score": opponent_matchup.get("points", 0),
+                    "user_starters": user_matchup.get("starters", []),
+                    "user_players": user_matchup.get("players", []),
+                    "opponent_starters": opponent_matchup.get("starters", []),
+                    "won": user_matchup.get("points", 0) > opponent_matchup.get("points", 0)
+                }
+            }
             
         except Exception as e:
-            return {"success": False, "error": f"Matchup preview error: {str(e)}"}
-    
+            return {"success": False, "error": f"Matchup investigation failed: {str(e)}"}
+
     @tool
-    def _create_roster_recommendations(self, display_name: str) -> Dict[str, Any]:
-        """Generate savage roster recommendations"""
+    def _analyze_draft_vs_current_performance(self, display_name: str) -> Dict[str, Any]:
+        """Analyze how draft picks are performing now vs expectations"""
         try:
+            # Get team data and league info
             team_data = get_team_data(display_name)
-            if not team_data["success"]:
-                return team_data
-            
-            trending = get_trending_players()
-            if not trending["success"]:
-                return {"success": False, "error": "Failed to get trending players"}
-            
-            team = team_data["data"]
-            trending_data = trending["data"]
-            
-            # Get some waiver targets and drop candidates
-            waiver_targets = trending_data["trending_adds"][:3]
-            drop_candidates = [player for player in team["bench"][:2]]  # Suggest dropping bench players
-            
-            content = f"""
-            <h2>🔄 Roster Move Recommendations</h2>
-            
-            <h3>Waiver Wire Targets:</h3>
-            <ul class="recommendation-list">
-            """
-            
-            for target in waiver_targets:
-                content += f"""
-                <li>
-                    <span class="player-name">{target["name"]}</span>
-                    <div>{target["add_count"]} managers added this week</div>
-                    <div>Maybe try picking up someone people actually want for once?</div>
-                </li>
-                """
-            
-            content += """
-            </ul>
-            
-            <h3>Drop Candidates:</h3>
-            <ul class="recommendation-list">
-            """
-            
-            for candidate in drop_candidates:
-                content += f"""
-                <li>
-                    <span class="player-name">{candidate["name"]}</span>
-                    <div>This player is taking up valuable bench space that could be used for someone useful</div>
-                </li>
-                """
-            
-            content += f"""
-            </ul>
-            
-            <div class="roast-text">
-                Your roster needs more help than a reality TV star needs therapy. You're seriously considering 
-                starting some of these players? The waiver wire has better options than half your bench.
-                
-                And as for trades? Good luck finding someone desperate enough to want what you're offering. 
-                Maybe try offering your first-born child as a sweetener?
-                
-                Priority #1: Stop making terrible decisions. Priority #2: See Priority #1.
-            </div>
-            """
-            
-            return {"success": True, "content": content}
-            
-        except Exception as e:
-            return {"success": False, "error": f"Roster recommendations error: {str(e)}"}
-    
-    @tool
-    def _create_league_prognosis(self, display_name: str) -> Dict[str, Any]:
-        """Deliver harsh reality about playoff chances"""
-        try:
-            team_data = get_team_data(display_name)
-            if not team_data["success"]:
-                return team_data
-            
-            team = team_data["data"]
-            
-            # Calculate rough playoff probability based on record and rank
-            total_games = team["wins"] + team["losses"] + team["ties"]
-            win_pct = team["wins"] / total_games if total_games > 0 else 0
-            rank_factor = (team["total_teams"] - team["league_rank"]) / team["total_teams"]
-            playoff_prob = min(95, max(5, (win_pct * 60 + rank_factor * 40)))
-            
-            content = f"""
-            <h2>🔮 League Prognosis</h2>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-value">#{team["league_rank"]}</span>
-                    <div class="stat-label">Current Standing</div>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-value">{playoff_prob:.0f}%</span>
-                    <div class="stat-label">Playoff Probability</div>
-                </div>
-            </div>
-            
-            <div class="roast-text">
-                Your playoff chances are sitting at {playoff_prob:.0f}%, which sounds optimistic until you realize 
-                that's about the same odds as finding a unicorn in your backyard.
-                
-                Currently ranked #{team["league_rank"]} out of {team["total_teams"]} teams, you're in that special 
-                zone where you're not good enough to feel confident but not bad enough to embrace the tank.
-                
-                The rest of your schedule? Let's just say you better start practicing your "next year will be different" speech. 
-                Your team has about as much championship potential as a chocolate teapot.
-                
-                But hey, there's always the consolation bracket! That's where dreams go to die slowly.
-            </div>
-            """
-            
-            return {"success": True, "content": content}
-            
-        except Exception as e:
-            return {"success": False, "error": f"League prognosis error: {str(e)}"}
-    
-    @tool
-    def _create_final_score(self, display_name: str) -> Dict[str, Any]:
-        """Deliver the final verdict with maximum brutality"""
-        try:
-            team_data = get_team_data(display_name)
-            if not team_data["success"]:
-                return team_data
-            
-            team = team_data["data"]
-            averages = calculate_league_averages()
-            
-            final_grade = self._calculate_team_grade(team, averages["data"])
-            
-            content = f"""
-            <h2>📊 Final Team Score</h2>
-            
-            <div class="grade pulse">{final_grade}</div>
-            
-            <div class="roast-text">
-                <strong>Final Thoughts:</strong><br><br>
-                
-                Your team is {final_grade.lower()}, which in fantasy football terms means "participation trophy worthy." 
-                You've managed to stay relevant through a combination of luck, questionable decision-making, 
-                and the fact that someone has to finish in the middle of the pack.
-                
-                Congratulations! You've successfully proven that throwing darts at a board while blindfolded 
-                can be a viable fantasy strategy. Your ability to snatch defeat from the jaws of victory is 
-                truly impressive.
-                
-                But seriously, you're still in this thing, and that's something. Just... maybe try reading 
-                some expert advice next time? Or at least check if your players are actually playing before 
-                you start them.
-                
-                <strong>Bottom Line:</strong> Your team has potential, but so does a lottery ticket. 
-                The difference is the lottery ticket admits it's a long shot.
-            </div>
-            
-            <div class="timestamp">
-                Report completed on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
-            </div>
-            """
-            
-            return {"success": True, "content": content}
-            
-        except Exception as e:
-            return {"success": False, "error": f"Final score error: {str(e)}"}
-    
-    def generate_report(self, display_name: str) -> str:
-        """Generate complete roast report for a user"""
-        try:
-            print(f"🔥 Generating roast report for {display_name}...")
-            
-            # Get basic info first
-            nfl_state = get_nfl_state()
             league_info = get_league_info()
             
-            if not nfl_state["success"] or not league_info["success"]:
-                return self._create_error_report("Failed to get basic league information")
+            if not team_data["success"] or not league_info["success"]:
+                return {"success": False, "error": "Could not get team or league data"}
             
-            current_week = nfl_state["data"]["current_week"]
+            draft_id = league_info["data"].get("draft_id")
+            if not draft_id:
+                return {"success": False, "error": "No draft data available"}
+            
+            # Get draft analysis
+            draft_data = get_draft_analysis(draft_id)
+            if not draft_data["success"]:
+                return {"success": False, "error": "Could not get draft data"}
+            
+            roster_id = team_data["data"]["roster_id"]
+            
+            # Filter picks for this user
+            user_picks = [pick for pick in draft_data["data"]["picks"] 
+                         if pick["roster_id"] == roster_id]
+            
+            # Current roster for comparison
+            current_starters = [p["name"] for p in team_data["data"]["starters"]]
+            current_bench = [p["name"] for p in team_data["data"]["bench"]]
+            
+            return {
+                "success": True,
+                "data": {
+                    "draft_picks": user_picks,
+                    "current_starters": current_starters,
+                    "current_bench": current_bench,
+                    "draft_position": user_picks[0]["draft_slot"] if user_picks else None,
+                    "total_picks": len(user_picks),
+                    "roster_id": roster_id
+                }
+            }
+            
+        except Exception as e:
+            return {"success": False, "error": f"Draft analysis failed: {str(e)}"}
+
+    @tool
+    def _find_league_context(self, display_name: str) -> Dict[str, Any]:
+        """Get league-wide context for comparisons and trash talk"""
+        try:
+            league_info = get_league_info()
+            team_data = get_team_data(display_name)
+            averages = calculate_league_averages()
+            
+            if not all([league_info["success"], team_data["success"], averages["success"]]):
+                return {"success": False, "error": "Could not gather league context"}
+            
+            # Get all teams for ranking context
+            all_users = league_info["data"]["users"]
             league_data = league_info["data"]
             
-            # Generate each section
-            sections = []
+            return {
+                "success": True,
+                "data": {
+                    "league_name": league_data["league_name"],
+                    "total_teams": league_data["total_rosters"],
+                    "league_status": league_data["status"],
+                    "all_users": all_users,
+                    "averages": averages["data"],
+                    "user_rank": team_data["data"]["league_rank"],
+                    "user_points": team_data["data"]["points_for"],
+                    "user_record": f"{team_data['data']['wins']}-{team_data['data']['losses']}"
+                }
+            }
             
-            # 1. Team Snapshot
-            print("📊 Creating team snapshot...")
-            snapshot = self._create_team_snapshot(display_name)
-            if snapshot["success"]:
-                sections.append({"content": snapshot["content"]})
-                team_data = snapshot.get("team_data")
+        except Exception as e:
+            return {"success": False, "error": f"League context failed: {str(e)}"}
+
+    @tool 
+    def _research_upcoming_opponent(self, display_name: str, current_week: int) -> Dict[str, Any]:
+        """Research upcoming opponent for matchup preview"""
+        try:
+            # This would need league schedule data to find actual upcoming opponent
+            # For now, provide framework for opponent analysis
+            team_data = get_team_data(display_name)
+            if not team_data["success"]:
+                return {"success": False, "error": "Could not get team data"}
             
-            # 2. Draft Analysis
-            print("📝 Analyzing draft...")
-            if league_data.get("draft_id") and team_data:
-                draft = self._create_draft_analysis(league_data["draft_id"], team_data["roster_id"])
-                if draft["success"]:
-                    sections.append({"content": draft["content"]})
+            # Get current matchup data to see matchup structure
+            matchup_data = get_matchup_data(current_week)
+            opponent_info = None
             
-            # 3. Last Week Recap
-            print("📈 Reviewing last week...")
-            if current_week > 1:
-                recap = self._create_last_week_recap(display_name, current_week - 1)
-                if recap["success"]:
-                    sections.append({"content": recap["content"]})
+            if matchup_data["success"]:
+                roster_id = team_data["data"]["roster_id"]
+                user_matchup = None
+                
+                # Find user's current matchup
+                for matchup in matchup_data["data"]["matchups"]:
+                    if matchup.get("roster_id") == roster_id:
+                        user_matchup = matchup
+                        break
+                
+                if user_matchup:
+                    matchup_id = user_matchup.get("matchup_id")
+                    # Find opponent in same matchup
+                    for matchup in matchup_data["data"]["matchups"]:
+                        if (matchup.get("matchup_id") == matchup_id and 
+                            matchup.get("roster_id") != roster_id):
+                            opponent_info = matchup
+                            break
             
-            # 4. Matchup Preview
-            print("⚡ Previewing matchup...")
-            matchup = self._create_matchup_preview(display_name, current_week)
-            if matchup["success"]:
-                sections.append({"content": matchup["content"]})
+            return {
+                "success": True,
+                "data": {
+                    "current_week": current_week,
+                    "opponent_info": opponent_info,
+                    "has_current_matchup": opponent_info is not None
+                }
+            }
             
-            # 5. Roster Recommendations
-            print("🔄 Creating recommendations...")
-            recommendations = self._create_roster_recommendations(display_name)
-            if recommendations["success"]:
-                sections.append({"content": recommendations["content"]})
+        except Exception as e:
+            return {"success": False, "error": f"Opponent research failed: {str(e)}"}
+
+    @tool
+    def _generate_section_content(self, section_name: str, investigation_data: str) -> Dict[str, Any]:
+        """Generate roast content for a specific section based on investigation findings"""
+        try:
+            # This tool allows the agent to structure its findings into section content
+            # The agent will call this after gathering data to format its roast
+            return {
+                "success": True,
+                "data": {
+                    "section": section_name,
+                    "content": investigation_data,
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+        except Exception as e:
+            return {"success": False, "error": f"Content generation failed: {str(e)}"}
+
+    def generate_report(self, display_name: str) -> str:
+        """Generate complete roast report with AI agent doing all analysis"""
+        try:
+            print(f"🔥 Starting investigative roast for {display_name}...")
             
-            # 6. League Prognosis
-            print("🔮 Calculating prognosis...")
-            prognosis = self._create_league_prognosis(display_name)
-            if prognosis["success"]:
-                sections.append({"content": prognosis["content"]})
+            # Let the agent generate the complete report
+            prompt = f"""
+            Generate a complete fantasy football roast report for {display_name}.
             
-            # 7. Final Score
-            print("📊 Delivering final verdict...")
-            final = self._create_final_score(display_name)
-            if final["success"]:
-                sections.append({"content": final["content"]})
+            You MUST:
+            1. Use tools to investigate their team thoroughly 
+            2. Research current player news and trends
+            3. Find their actual opponents and analyze specific matchups
+            4. Compare to league averages and other teams
+            5. Generate 7 sections of savage but truthful analysis
             
-            # Generate HTML report
-            return self._render_html_report(
-                team_name=display_name,
-                league_name=league_data["league_name"],
-                season=league_data["season"],
-                sections=sections
-            )
+            INVESTIGATION REQUIREMENTS:
+            - Get current NFL state and league info
+            - Analyze their team data and league ranking
+            - Investigate last week's matchup with actual opponent
+            - Research draft performance vs current roster
+            - Look up trending players and waiver wire context
+            - Find league-wide context for comparisons
+            
+            Generate exactly these 7 sections with detailed roast content:
+            
+            ## 1. Team Snapshot
+            [Investigate record, ranking, points vs league average]
+            
+            ## 2. Draft Autopsy  
+            [Research how draft picks are performing now]
+            
+                         ## 3. Last Week's Matchup
+             [Find actual opponent and analyze specific performance and lineup decisions]
+            
+            ## 4. Upcoming Battle Preview
+            [Research next opponent and predict outcome]
+            
+            ## 5. Roster Intervention
+            [Compare roster to trending players and suggest moves]
+            
+            ## 6. Playoff Reality Check
+            [Calculate actual playoff chances and roast accordingly]
+            
+            ## 7. Final Verdict
+            [Synthesize all findings into brutal final assessment]
+            
+            Be investigative, specific, and savage. Use player names, cite exact numbers, and find real examples of bad decisions!
+            """
+            
+            # Let the agent investigate and generate the report
+            response = self.agent(prompt)
+            
+            # Extract content from AgentResult object
+            if hasattr(response, 'content'):
+                agent_content = response.content
+            elif hasattr(response, 'text'):
+                agent_content = response.text
+            else:
+                agent_content = str(response)
+            
+            # The agent should have generated markdown content
+            # Now wrap it in HTML template
+            return self._render_html_report(display_name, agent_content)
             
         except Exception as e:
             print(f"❌ Error generating report: {e}")
             return self._create_error_report(f"Report generation failed: {str(e)}")
     
-    def _render_html_report(self, team_name: str, league_name: str, season: str, sections: List[Dict]) -> str:
-        """Render the final HTML report"""
+    def _render_html_report(self, team_name: str, agent_content: str) -> str:
+        """Render the agent's markdown content into HTML report"""
         try:
-            with open("report_template.html", "r") as f:
-                template_content = f.read()
+            # Get league info for header
+            league_info = get_league_info()
+            league_name = league_info["data"]["league_name"] if league_info["success"] else "Fantasy League"
+            season = league_info["data"]["season"] if league_info["success"] else config["season"]
+            
+            # Create simplified template that wraps agent content
+            template_content = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>🔥 Fantasy Football Roast Report - {{ team_name }}</title>
+                                 <style>
+                     body { font-family: Georgia, serif; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; line-height: 1.7; margin: 0; padding: 20px; min-height: 100vh; word-wrap: break-word; }
+                     .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+                     .header { text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.3); border-radius: 15px; margin-bottom: 30px; border: 2px solid #ff6b35; }
+                     .header h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); color: #ff6b35; line-height: 1.2; }
+                     .header .subtitle { font-size: 1.2rem; opacity: 0.9; font-style: italic; margin-top: 10px; }
+                     .timestamp { text-align: center; font-size: 0.9rem; opacity: 0.7; margin-bottom: 30px; }
+                     .content { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 40px; margin-bottom: 25px; border-left: 5px solid #ff6b35; box-shadow: 0 8px 32px rgba(0,0,0,0.3); min-height: 200px; }
+                     .content h1 { color: #ff6b35; font-size: 2.5rem; margin: 30px 0 25px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); line-height: 1.3; }
+                     .content h2 { color: #ff6b35; font-size: 2rem; margin: 25px 0 20px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); line-height: 1.3; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
+                     .content h3 { color: #ffd700; font-size: 1.4rem; margin: 20px 0 15px 0; line-height: 1.4; }
+                     .content p { margin: 18px 0; font-size: 1.1rem; line-height: 1.8; text-align: justify; }
+                     .content ul, .content ol { margin: 20px 0; padding-left: 35px; }
+                     .content li { margin: 8px 0; font-size: 1.05rem; line-height: 1.6; }
+                     .content blockquote { border-left: 4px solid #ffd700; padding-left: 20px; margin: 20px 0; font-style: italic; background: rgba(255,215,0,0.1); padding: 15px 20px; border-radius: 5px; }
+                     .content strong { color: #ffd700; }
+                     .content em { color: #ff6b35; }
+                     .footer { text-align: center; padding: 30px; font-size: 0.9rem; opacity: 0.7; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 40px; }
+                     @media (max-width: 768px) { 
+                         .header h1 { font-size: 2.2rem; } 
+                         .container { padding: 10px; } 
+                         .content { padding: 25px; }
+                         .content h1 { font-size: 2rem; }
+                         .content h2 { font-size: 1.6rem; }
+                         .content p { font-size: 1rem; }
+                     }
+                     @media (max-width: 480px) { 
+                         .header h1 { font-size: 1.8rem; } 
+                         .content { padding: 20px; }
+                         .content h1 { font-size: 1.7rem; }
+                         .content h2 { font-size: 1.4rem; }
+                     }
+                 </style>
+            </head>
+            <body>
+                <div class="container">
+                    <header class="header">
+                        <h1>🔥 Fantasy Football Roast Report 🔥</h1>
+                        <div class="subtitle">{{ league_name }} | {{ season }} Season</div>
+                    </header>
+                    
+                    <div class="timestamp">Report Generated: {{ timestamp }}</div>
+                    
+                    <div class="content">
+                        {{ agent_content | safe }}
+                    </div>
+                    
+                    <footer class="footer">
+                        <p>🔥 This roast was generated by an AI agent with maximum investigative powers 🔥</p>
+                        <p>Powered by Sleeper API, Web Search & Pure Savage Intelligence™</p>
+                        <p><small>All roasts are based on actual data and current events</small></p>
+                    </footer>
+                </div>
+            </body>
+            </html>
+            """
             
             template = Template(template_content)
             
-            html_content = template.render(
+            # Convert agent's markdown-style content to HTML
+            html_content = self._convert_markdown_to_html(agent_content)
+            
+            final_html = template.render(
                 team_name=team_name,
                 league_name=league_name,
                 season=season,
                 timestamp=datetime.now().strftime('%B %d, %Y at %I:%M %p'),
-                sections=sections
+                agent_content=html_content
             )
             
             # Save report
@@ -593,7 +522,7 @@ Remember: Be savage but stay focused on fantasy football. The goal is entertainm
             
             output_path = Path(config["output_dir"]) / filename
             with open(output_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
+                f.write(final_html)
             
             print(f"✅ Report saved to: {output_path}")
             return str(output_path)
@@ -601,6 +530,29 @@ Remember: Be savage but stay focused on fantasy football. The goal is entertainm
         except Exception as e:
             print(f"❌ Error rendering report: {e}")
             return self._create_error_report(f"Failed to render HTML: {str(e)}")
+    
+    def _convert_markdown_to_html(self, content: str) -> str:
+        """Convert markdown-style content to HTML"""
+        # Simple markdown to HTML conversion
+        lines = content.split('\n')
+        html_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('## '):
+                html_lines.append(f'<h2>{line[3:]}</h2>')
+            elif line.startswith('### '):
+                html_lines.append(f'<h3>{line[4:]}</h3>')
+            elif line.startswith('# '):
+                html_lines.append(f'<h1>{line[2:]}</h1>')
+            elif line.startswith('- '):
+                html_lines.append(f'<li>{line[2:]}</li>')
+            elif line:
+                html_lines.append(f'<p>{line}</p>')
+            else:
+                html_lines.append('<br>')
+        
+        return '\n'.join(html_lines)
     
     def _create_error_report(self, error_message: str) -> str:
         """Create a basic error report"""
@@ -622,80 +574,6 @@ Remember: Be savage but stay focused on fantasy football. The goal is entertainm
             f.write(error_html)
         
         return str(output_path)
-    
-    # Helper methods for analysis
-    def _roast_record(self, wins: int, losses: int, win_pct: float) -> str:
-        if win_pct > 70:
-            return f"Your {wins}-{losses} record is actually impressive. Don't let it go to your head."
-        elif win_pct > 50:
-            return f"A {wins}-{losses} record means you're mediocre, which is probably your ceiling."
-        else:
-            return f"Your {wins}-{losses} record is more disappointing than a soggy sandwich."
-    
-    def _roast_points(self, points: float, avg_points: float) -> str:
-        if points > avg_points * 1.1:
-            return f"Your {points} points is above average, which is shocking given your decision-making."
-        elif points > avg_points * 0.9:
-            return f"Your {points} points is perfectly average, just like everything else about your team."
-        else:
-            return f"Your {points} points is below average, which honestly isn't surprising."
-    
-    def _roast_ranking(self, rank: int, total: int) -> str:
-        if rank <= total // 4:
-            return f"Being ranked #{rank} means you're temporarily fooling people into thinking you know what you're doing."
-        elif rank <= total // 2:
-            return f"Ranked #{rank}, you're the definition of mediocre middle management."
-        else:
-            return f"Ranked #{rank}, you're closer to last place than first, which is probably where you belong."
-    
-    def _calculate_team_grade(self, team: Dict, averages: Dict) -> str:
-        """Calculate overall team grade"""
-        score = 0
-        
-        # Record score (40%)
-        total_games = team["wins"] + team["losses"] + team["ties"]
-        if total_games > 0:
-            win_pct = team["wins"] / total_games
-            if win_pct >= 0.7: score += 40
-            elif win_pct >= 0.5: score += 25
-            else: score += 10
-        
-        # Points score (40%)
-        if team["points_for"] >= averages["avg_points_for"] * 1.1: score += 40
-        elif team["points_for"] >= averages["avg_points_for"] * 0.9: score += 25
-        else: score += 10
-        
-        # Ranking score (20%)
-        rank_pct = team["league_rank"] / team["total_teams"]
-        if rank_pct <= 0.25: score += 20
-        elif rank_pct <= 0.5: score += 15
-        else: score += 5
-        
-        # Convert to letter grade
-        if score >= 85: return "A-"
-        elif score >= 75: return "B"
-        elif score >= 65: return "C+"
-        elif score >= 55: return "C"
-        elif score >= 45: return "C-"
-        elif score >= 35: return "D+"
-        else: return "F"
-    
-    def _find_best_pick(self, picks: List[Dict]) -> Dict:
-        """Find the best draft pick (placeholder logic)"""
-        # Simple logic: early rounds are usually better
-        return min(picks, key=lambda x: x["pick_no"])
-    
-    def _find_worst_pick(self, picks: List[Dict]) -> Dict:
-        """Find the worst draft pick (placeholder logic)"""
-        # Simple logic: later rounds with early pick numbers
-        return max(picks, key=lambda x: x["round"] if x["round"] <= 8 else 0)
-    
-    def _grade_draft(self, picks: List[Dict]) -> str:
-        """Grade the overall draft"""
-        # Placeholder grading logic
-        grades = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F"]
-        import random
-        return random.choice(grades[3:8])  # Bias toward middle grades
 
 
 def main():

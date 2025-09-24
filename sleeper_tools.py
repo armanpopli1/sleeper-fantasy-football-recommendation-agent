@@ -326,3 +326,108 @@ def calculate_league_averages() -> Dict[str, Any]:
             "total_teams": num_teams
         }
     } 
+
+@tool
+def get_all_rosters_with_users() -> Dict[str, Any]:
+    """Get all rosters mapped to their users for easier opponent identification"""
+    try:
+        league_info = get_league_info()
+        if not league_info["success"]:
+            return {"success": False, "error": "Failed to get league info"}
+        
+        league_id = config["league_id"]
+        rosters_url = config["endpoints"]["league_rosters"].format(league_id=league_id)
+        rosters_data = make_api_call(rosters_url)
+        
+        if not rosters_data:
+            return {"success": False, "error": "Failed to get roster data"}
+        
+        # Map rosters to users
+        rosters_with_users = []
+        users = league_info["data"]["users"]
+        
+        for roster in rosters_data:
+            owner_id = roster.get("owner_id")
+            # Find the user for this roster
+            user_info = None
+            for user in users:
+                if user.get("user_id") == owner_id:
+                    user_info = user
+                    break
+            
+            roster_with_user = {
+                "roster_id": roster.get("roster_id"),
+                "owner_id": owner_id,
+                "user_info": user_info,
+                "wins": roster.get("settings", {}).get("wins", 0),
+                "losses": roster.get("settings", {}).get("losses", 0),
+                "points_for": roster.get("settings", {}).get("fpts", 0),
+                "points_against": roster.get("settings", {}).get("fpts_against", 0),
+                "starters": roster.get("starters", []),
+                "players": roster.get("players", []),
+                "waiver_position": roster.get("settings", {}).get("waiver_position"),
+                "total_moves": roster.get("settings", {}).get("total_moves", 0)
+            }
+            rosters_with_users.append(roster_with_user)
+        
+        # Sort by points for ranking
+        rosters_with_users.sort(key=lambda x: x["points_for"], reverse=True)
+        for i, roster in enumerate(rosters_with_users, 1):
+            roster["league_rank"] = i
+        
+        return {
+            "success": True,
+            "data": {
+                "rosters": rosters_with_users,
+                "total_teams": len(rosters_with_users)
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get rosters with users: {str(e)}"}
+
+@tool
+def get_player_details(player_id: str) -> Dict[str, Any]:
+    """Get detailed information about a specific player"""
+    try:
+        players = get_player_database()
+        player = players.get(player_id, {})
+        
+        if not player:
+            # Handle team defenses
+            if len(player_id) <= 3 and player_id.isupper():
+                return {
+                    "success": True,
+                    "data": {
+                        "player_id": player_id,
+                        "name": f"{player_id} Defense",
+                        "position": "DEF",
+                        "team": player_id,
+                        "is_defense": True
+                    }
+                }
+            else:
+                return {"success": False, "error": f"Player {player_id} not found"}
+        
+        return {
+            "success": True,
+            "data": {
+                "player_id": player_id,
+                "name": get_player_name(player_id),
+                "first_name": player.get("first_name", ""),
+                "last_name": player.get("last_name", ""),
+                "position": player.get("position", ""),
+                "team": player.get("team", ""),
+                "age": player.get("age"),
+                "years_exp": player.get("years_exp"),
+                "height": player.get("height", ""),
+                "weight": player.get("weight", ""),
+                "college": player.get("college", ""),
+                "injury_status": player.get("injury_status"),
+                "fantasy_positions": player.get("fantasy_positions", []),
+                "is_defense": False
+            }
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Failed to get player details: {str(e)}"} 

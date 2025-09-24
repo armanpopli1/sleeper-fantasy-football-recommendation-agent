@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Any
 from strands import tool
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from config import get_config
 
 config = get_config()
