@@ -65,13 +65,13 @@ with st.sidebar:
     league_id = st.text_input(
         "Sleeper League ID",
         help="Find this in your Sleeper league URL: sleeper.com/leagues/<LEAGUE_ID>",
-        placeholder="1263345992535638016"
+        placeholder="123456789012345678"
     )
     
     target_user = st.text_input(
         "Target Username",
         help="Enter the exact Sleeper display name of the user to roast",
-        placeholder="armanpopli"
+        placeholder="username"
     )
     
     season = st.text_input(
