@@ -24,10 +24,42 @@ config = get_config()
 class FantasyFootballRoastAgent:
     """The most savage fantasy football analyst on the planet"""
     
-    def __init__(self):
+    def __init__(self, config_override: dict = None):
+        """
+        Initialize the roast agent with optional runtime configuration
+        
+        Args:
+            config_override: Optional config dict (for Streamlit runtime config)
+        """
+        # Use override config if provided, otherwise use default
+        self.config = config_override or config
+        
+        # Initialize model based on provider
+        if self.config.get("api_provider") == "anthropic":
+            from strands.models import AnthropicModel
+            import os
+            # Set API key in environment for Anthropic
+            os.environ["ANTHROPIC_API_KEY"] = self.config.get("api_key")
+            model = AnthropicModel(
+                model_id=self.config["model_id"],
+                max_tokens=8192  # Increased for longer roast reports with tool usage
+            )
+        elif self.config.get("api_provider") == "openai":
+            from strands.models import OpenAIModel
+            import os
+            # Set API key in environment for OpenAI
+            os.environ["OPENAI_API_KEY"] = self.config.get("api_key")
+            model = OpenAIModel(
+                model_id=self.config["model_id"],
+                max_tokens=8192  # Increased for longer roast reports
+            )
+        else:
+            # Default: use model_id string (for backward compatibility with AWS Bedrock)
+            model = self.config["model_id"]
+        
         self.agent = Agent(
             name="FantasyRoastMaster",
-            model=config["model_id"],
+            model=model,
             system_prompt=self._get_system_prompt(),
             tools=[
                 # Sleeper API Tools - for raw data gathering
@@ -56,7 +88,7 @@ class FantasyFootballRoastAgent:
         )
         
         # Ensure output directory exists
-        Path(config["output_dir"]).mkdir(exist_ok=True)
+        Path(self.config["output_dir"]).mkdir(exist_ok=True)
     
     def _get_system_prompt(self) -> str:
         """Get the roast agent's system prompt"""
@@ -79,6 +111,30 @@ You are an investigative fantasy football analyst. Use ALL available tools to ga
 - INVESTIGATIVE depth - dig into WHY things went wrong
 - LEAGUE CONTEXT - compare to other teams, reference league trends
 - PLAYER-SPECIFIC analysis - research current news, injury status, trends
+
+**VISUAL ROAST FORMATTING (CRITICAL):**
+- **Use markdown tables liberally** to compare stats (player vs league avg, week-by-week performance, draft picks analysis)
+- Use **blockquotes (>)** for especially savage burns that deserve emphasis
+- Use **bold (\*\*text\*\*)** for player names and key failures
+- Use **horizontal rules (---)** between major thought sections for visual breaks
+- Create stat comparison tables with at least 3-4 columns (Player, Stats, League Avg, Roast/Comment)
+- Include visual stat boxes using bullet points for W-L record, points, ranking at the start
+
+**EXAMPLE TABLE FORMAT (USE TABLES LIKE THIS):**
+| Player | Draft Round | Current Points | Status | Savage Take |
+|--------|-------------|----------------|---------|-------------|
+| CeeDee Lamb | 1st (7th overall) | 0.0 (injured) | EPIC BUST | Your first-round "stud" lasted 2 weeks |
+| Travis Kelce | 6th (54th overall) | 6.6 PPG | DECLINING | Living in 2019 |
+
+**EXAMPLE STAT BOX (START EACH SECTION):**
+**📊 Current Dumpster Fire Stats:**
+- Record: 1-2 (9th place out of 10)
+- Points For: 319 (54.5 below league average)
+- Points Against: 376 (slightly unlucky, mostly terrible)
+- Best Decision: Accidentally drafted a rookie who scores more on your bench
+
+**EXAMPLE BLOCKQUOTE FOR EMPHASIS:**
+> Your first-round pick is injured, your tight end thinks it's 2019, and you're leaving 46 points on your bench each week. At this point, autodraft would be an upgrade.
 
 **CRITICAL INVESTIGATION INSTRUCTIONS:**
 - **Multi-Tool Analysis:** Use 3-5+ tools per section to build comprehensive picture
@@ -138,8 +194,8 @@ Generate exactly 7 sections. For each, consider these investigative angles (purs
 
 **TODAY'S CONTEXT:**
 - Date: {datetime.now().strftime('%B %d, %Y')}
-- Season: {config['season']}
-- League: {config['league_id']}
+- Season: {self.config['season']}
+- League: {self.config['league_id']}
 
 Remember: Be a detective first, roaster second. Gather the evidence, then deliver the verdict with maximum entertainment value!"""
 
@@ -411,13 +467,24 @@ Remember: Be a detective first, roaster second. Gather the evidence, then delive
             # Let the agent investigate and generate the report
             response = self.agent(prompt)
             
-            # Extract content from AgentResult object
+            # Extract content from AgentResult object with robust handling
             if hasattr(response, 'content'):
-                agent_content = response.content
+                if isinstance(response.content, list):
+                    # List of content blocks - extract text from each
+                    agent_content = ''.join([
+                        block.text if hasattr(block, 'text') else str(block) 
+                        for block in response.content
+                    ])
+                else:
+                    agent_content = str(response.content)
             elif hasattr(response, 'text'):
                 agent_content = response.text
             else:
                 agent_content = str(response)
+            
+            # Validate it's actually a string
+            if not isinstance(agent_content, str):
+                agent_content = str(agent_content)
             
             # The agent should have generated markdown content
             # Now wrap it in HTML template
@@ -457,9 +524,18 @@ Remember: Be a detective first, roaster second. Gather the evidence, then delive
                      .content p { margin: 18px 0; font-size: 1.1rem; line-height: 1.8; text-align: justify; }
                      .content ul, .content ol { margin: 20px 0; padding-left: 35px; }
                      .content li { margin: 8px 0; font-size: 1.05rem; line-height: 1.6; }
-                     .content blockquote { border-left: 4px solid #ffd700; padding-left: 20px; margin: 20px 0; font-style: italic; background: rgba(255,215,0,0.1); padding: 15px 20px; border-radius: 5px; }
-                     .content strong { color: #ffd700; }
+                     .content blockquote { border-left: 4px solid #ff6b35; padding-left: 20px; margin: 20px 0; font-style: italic; background: rgba(255,107,53,0.15); padding: 15px 20px; border-radius: 5px; font-size: 1.15rem; color: #ffd700; }
+                     .content strong { color: #ffd700; font-weight: bold; }
                      .content em { color: #ff6b35; }
+                     .content table { width: 100%; border-collapse: collapse; margin: 25px 0; background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+                     .content th { background: rgba(255,107,53,0.4); color: #ffd700; padding: 12px 15px; text-align: left; font-weight: bold; border-bottom: 2px solid #ff6b35; font-size: 1.05rem; }
+                     .content td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 1rem; }
+                     .content tr:hover { background: rgba(255,255,255,0.08); }
+                     .content tr:last-child td { border-bottom: none; }
+                     .content hr { border: none; border-top: 2px solid rgba(255,107,53,0.5); margin: 30px 0; }
+                     .content code { background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; color: #ffd700; font-size: 0.95rem; }
+                     .content pre { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; overflow-x: auto; border-left: 3px solid #ff6b35; margin: 20px 0; }
+                     .content pre code { background: transparent; padding: 0; }
                      .footer { text-align: center; padding: 30px; font-size: 0.9rem; opacity: 0.7; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 40px; }
                      @media (max-width: 768px) { 
                          .header h1 { font-size: 2.2rem; } 
@@ -532,27 +608,219 @@ Remember: Be a detective first, roaster second. Gather the evidence, then delive
             return self._create_error_report(f"Failed to render HTML: {str(e)}")
     
     def _convert_markdown_to_html(self, content: str) -> str:
-        """Convert markdown-style content to HTML"""
-        # Simple markdown to HTML conversion
-        lines = content.split('\n')
-        html_lines = []
+        """Convert markdown to HTML with full support for tables, bold, italic, etc."""
+        import markdown
         
-        for line in lines:
-            line = line.strip()
-            if line.startswith('## '):
-                html_lines.append(f'<h2>{line[3:]}</h2>')
-            elif line.startswith('### '):
-                html_lines.append(f'<h3>{line[4:]}</h3>')
-            elif line.startswith('# '):
-                html_lines.append(f'<h1>{line[2:]}</h1>')
-            elif line.startswith('- '):
-                html_lines.append(f'<li>{line[2:]}</li>')
-            elif line:
-                html_lines.append(f'<p>{line}</p>')
+        # Initialize markdown with extensions for full GitHub-flavored markdown support
+        md = markdown.Markdown(extensions=[
+            'extra',        # Includes tables, fenced code, footnotes, etc.
+            'nl2br',        # Convert newlines to <br>
+            'sane_lists',   # Better list handling
+        ])
+        
+        return md.convert(content)
+    
+    def generate_markdown_report(self, display_name: str) -> str:
+        """
+        Generate roast report as markdown string (for Streamlit display)
+        
+        Args:
+            display_name: The display name of the user to roast
+            
+        Returns:
+            Markdown content as string
+        """
+        try:
+            print(f"🔥 Starting investigative roast for {display_name}...")
+            
+            # Same prompt as generate_report
+            prompt = f"""
+            Generate a complete fantasy football roast report for {display_name}.
+            
+            You MUST:
+            1. Use tools to investigate their team thoroughly 
+            2. Research current player news and trends
+            3. Find their actual opponents and analyze specific matchups
+            4. Compare to league averages and other teams
+            5. Generate 7 sections of savage but truthful analysis
+            
+            INVESTIGATION REQUIREMENTS:
+            - Get current NFL state and league info
+            - Analyze their team data and league ranking
+            - Investigate last week's matchup with actual opponent
+            - Research draft performance vs current roster
+            - Look up trending players and waiver wire context
+            - Find league-wide context for comparisons
+            
+            Generate exactly these 7 sections with detailed roast content:
+            
+            ## 1. Team Snapshot
+            [Investigate record, ranking, points vs league average]
+            
+            ## 2. Draft Autopsy  
+            [Research how draft picks are performing now]
+            
+            ## 3. Last Week's Matchup
+            [Find actual opponent and analyze specific performance and lineup decisions]
+            
+            ## 4. Upcoming Battle Preview
+            [Research next opponent and predict outcome]
+            
+            ## 5. Roster Intervention
+            [Compare roster to trending players and suggest moves]
+            
+            ## 6. Playoff Reality Check
+            [Calculate actual playoff chances and roast accordingly]
+            
+            ## 7. Final Verdict
+            [Synthesize all findings into brutal final assessment]
+            
+            Be investigative, specific, and savage. Use player names, cite exact numbers, and find real examples of bad decisions!
+            """
+            
+            response = self.agent(prompt)
+            
+            # Extract content with robust handling
+            if hasattr(response, 'content'):
+                if isinstance(response.content, list):
+                    agent_content = ''.join([
+                        block.text if hasattr(block, 'text') else str(block) 
+                        for block in response.content
+                    ])
+                else:
+                    agent_content = str(response.content)
+            elif hasattr(response, 'text'):
+                agent_content = response.text
             else:
-                html_lines.append('<br>')
+                agent_content = str(response)
+            
+            # Validate it's actually a string
+            if not isinstance(agent_content, str):
+                agent_content = str(agent_content)
+            
+            return agent_content
+            
+        except Exception as e:
+            print(f"❌ Error generating markdown report: {e}")
+            raise
+    
+    def markdown_to_html(self, markdown_content: str, team_name: str = "User") -> str:
+        """
+        Convert markdown content to standalone HTML document (returns HTML string, not file path)
         
-        return '\n'.join(html_lines)
+        Args:
+            markdown_content: The markdown roast content
+            team_name: Team/user name for the header
+            
+        Returns:
+            Complete HTML document as string (for download)
+        """
+        try:
+            # Get league info for header
+            league_info = get_league_info()
+            league_name = league_info["data"]["league_name"] if league_info["success"] else "Fantasy League"
+            season = league_info["data"]["season"] if league_info["success"] else self.config["season"]
+            
+            # Use the same template as _render_html_report
+            template_content = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>🔥 Fantasy Football Roast Report - {{ team_name }}</title>
+                                 <style>
+                     body { font-family: Georgia, serif; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; line-height: 1.7; margin: 0; padding: 20px; min-height: 100vh; word-wrap: break-word; }
+                     .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+                     .header { text-align: center; padding: 40px 20px; background: rgba(0,0,0,0.3); border-radius: 15px; margin-bottom: 30px; border: 2px solid #ff6b35; }
+                     .header h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.7); color: #ff6b35; line-height: 1.2; }
+                     .header .subtitle { font-size: 1.2rem; opacity: 0.9; font-style: italic; margin-top: 10px; }
+                     .timestamp { text-align: center; font-size: 0.9rem; opacity: 0.7; margin-bottom: 30px; }
+                     .content { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; padding: 40px; margin-bottom: 25px; border-left: 5px solid #ff6b35; box-shadow: 0 8px 32px rgba(0,0,0,0.3); min-height: 200px; }
+                     .content h1 { color: #ff6b35; font-size: 2.5rem; margin: 30px 0 25px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); line-height: 1.3; }
+                     .content h2 { color: #ff6b35; font-size: 2rem; margin: 25px 0 20px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); line-height: 1.3; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
+                     .content h3 { color: #ffd700; font-size: 1.4rem; margin: 20px 0 15px 0; line-height: 1.4; }
+                     .content p { margin: 18px 0; font-size: 1.1rem; line-height: 1.8; text-align: justify; }
+                     .content ul, .content ol { margin: 20px 0; padding-left: 35px; }
+                     .content li { margin: 8px 0; font-size: 1.05rem; line-height: 1.6; }
+                     .content blockquote { border-left: 4px solid #ff6b35; padding-left: 20px; margin: 20px 0; font-style: italic; background: rgba(255,107,53,0.15); padding: 15px 20px; border-radius: 5px; font-size: 1.15rem; color: #ffd700; }
+                     .content strong { color: #ffd700; font-weight: bold; }
+                     .content em { color: #ff6b35; }
+                     .content table { width: 100%; border-collapse: collapse; margin: 25px 0; background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+                     .content th { background: rgba(255,107,53,0.4); color: #ffd700; padding: 12px 15px; text-align: left; font-weight: bold; border-bottom: 2px solid #ff6b35; font-size: 1.05rem; }
+                     .content td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 1rem; }
+                     .content tr:hover { background: rgba(255,255,255,0.08); }
+                     .content tr:last-child td { border-bottom: none; }
+                     .content hr { border: none; border-top: 2px solid rgba(255,107,53,0.5); margin: 30px 0; }
+                     .content code { background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 4px; font-family: 'Courier New', monospace; color: #ffd700; font-size: 0.95rem; }
+                     .content pre { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; overflow-x: auto; border-left: 3px solid #ff6b35; margin: 20px 0; }
+                     .content pre code { background: transparent; padding: 0; }
+                     .footer { text-align: center; padding: 30px; font-size: 0.9rem; opacity: 0.7; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 40px; }
+                     @media (max-width: 768px) { 
+                         .header h1 { font-size: 2.2rem; } 
+                         .container { padding: 10px; } 
+                         .content { padding: 25px; }
+                         .content h1 { font-size: 2rem; }
+                         .content h2 { font-size: 1.6rem; }
+                         .content p { font-size: 1rem; }
+                     }
+                     @media (max-width: 480px) { 
+                         .header h1 { font-size: 1.8rem; } 
+                         .content { padding: 20px; }
+                         .content h1 { font-size: 1.7rem; }
+                         .content h2 { font-size: 1.4rem; }
+                     }
+                 </style>
+            </head>
+            <body>
+                <div class="container">
+                    <header class="header">
+                        <h1>🔥 Fantasy Football Roast Report 🔥</h1>
+                        <div class="subtitle">{{ league_name }} | {{ season }} Season</div>
+                    </header>
+                    
+                    <div class="timestamp">Report Generated: {{ timestamp }}</div>
+                    
+                    <div class="content">
+                        {{ agent_content | safe }}
+                    </div>
+                    
+                    <footer class="footer">
+                        <p>🔥 This roast was generated by an AI agent with maximum investigative powers 🔥</p>
+                        <p>Powered by Sleeper API, Web Search & Pure Savage Intelligence™</p>
+                        <p><small>All roasts are based on actual data and current events</small></p>
+                    </footer>
+                </div>
+            </body>
+            </html>
+            """
+            
+            template = Template(template_content)
+            
+            # Convert markdown to HTML
+            html_content = self._convert_markdown_to_html(markdown_content)
+            
+            # Render final HTML (don't save to file, just return the string)
+            final_html = template.render(
+                team_name=team_name,
+                league_name=league_name,
+                season=season,
+                timestamp=datetime.now().strftime('%B %d, %Y at %I:%M %p'),
+                agent_content=html_content
+            )
+            
+            return final_html
+            
+        except Exception as e:
+            # Return error HTML if something goes wrong
+            return f"""
+            <!DOCTYPE html>
+            <html><head><title>Error</title></head>
+            <body style="font-family: Arial; color: red; padding: 20px;">
+                <h1>Error generating HTML</h1>
+                <p>{str(e)}</p>
+            </body></html>
+            """
     
     def _create_error_report(self, error_message: str) -> str:
         """Create a basic error report"""
@@ -568,7 +836,7 @@ Remember: Be a detective first, roaster second. Gather the evidence, then delive
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"error_report_{timestamp}.html"
-        output_path = Path(config["output_dir"]) / filename
+        output_path = Path(self.config["output_dir"]) / filename
         
         with open(output_path, "w") as f:
             f.write(error_html)

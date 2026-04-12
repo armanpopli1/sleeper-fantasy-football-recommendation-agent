@@ -88,4 +88,45 @@ def get_config():
         "endpoints": ENDPOINTS,
         "position_groups": POSITION_GROUPS,
         "ppr_weights": PPR_WEIGHTS
-    } 
+    }
+
+def create_runtime_config(
+    league_id: str,
+    target_name: str,
+    api_key: str,
+    provider: str = "anthropic",
+    model: str = None,
+    season: str = "2025"
+):
+    """
+    Create configuration at runtime from user inputs (for Streamlit app)
+    
+    Args:
+        league_id: Sleeper league ID
+        target_name: Display name of user to roast
+        api_key: Anthropic or OpenAI API key
+        provider: "anthropic" or "openai"
+        model: Optional model override (auto-selected if None)
+        season: Season year (defaults to 2025)
+    
+    Returns:
+        Configuration dictionary
+    """
+    # Auto-select model based on provider
+    if model is None:
+        model = "claude-3-7-sonnet-20250219" if provider == "anthropic" else "gpt-4o"
+    
+    # Start with base config
+    base_config = get_config()
+    
+    # Override with runtime values
+    base_config.update({
+        "league_id": league_id,
+        "target_display_name": target_name,
+        "api_provider": provider,
+        "api_key": api_key,
+        "model_id": model,
+        "season": season,
+    })
+    
+    return base_config 
