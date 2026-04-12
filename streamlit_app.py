@@ -7,8 +7,15 @@ Fantasy Football Roast Generator - Streamlit Web App
 import streamlit as st
 from pathlib import Path
 from datetime import datetime
-from roast_agent import FantasyFootballRoastAgent
-from config import create_runtime_config
+
+# Wrap imports to show errors more clearly
+try:
+    from roast_agent import FantasyFootballRoastAgent
+    from config import create_runtime_config
+except Exception as e:
+    st.error(f"Failed to load dependencies: {str(e)}")
+    st.exception(e)
+    st.stop()
 
 # Page configuration
 st.set_page_config(

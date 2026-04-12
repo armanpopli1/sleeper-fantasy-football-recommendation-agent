@@ -94,15 +94,20 @@ def get_config():
     
     config_local_path = os.path.join(os.path.dirname(__file__), 'config.local.py')
     
-    if os.path.exists(config_local_path):
-        # Load config.local.py
-        spec = importlib.util.spec_from_file_location("config_local", config_local_path)
-        config_local = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(config_local)
-        league_id = config_local.LEAGUE_ID
-        target_name = config_local.TARGET_DISPLAY_NAME
-    else:
-        # Use defaults from this file
+    try:
+        if os.path.exists(config_local_path):
+            # Load config.local.py
+            spec = importlib.util.spec_from_file_location("config_local", config_local_path)
+            config_local = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(config_local)
+            league_id = config_local.LEAGUE_ID
+            target_name = config_local.TARGET_DISPLAY_NAME
+        else:
+            # Use defaults from this file
+            league_id = LEAGUE_ID
+            target_name = TARGET_DISPLAY_NAME
+    except Exception:
+        # Fallback to defaults if anything goes wrong
         league_id = LEAGUE_ID
         target_name = TARGET_DISPLAY_NAME
     
