@@ -3,6 +3,9 @@
 *.pem
 *.key
 
+# Local configuration with your actual league/user data
+config.local.py
+
 # Streamlit secrets
 .streamlit/secrets.toml
 

@@ -53,7 +53,7 @@ Choose one:
 #### 3. Find Your Sleeper League ID
 
 1. Go to your league in the Sleeper app or web
-2. The URL will look like: `https://sleeper.com/leagues/1263345992535638016`
+2. The URL will look like: `https://sleeper.com/leagues/123456789012345678`
 3. Copy the long number - that's your League ID!
 
 #### 4. Run the App
@@ -114,7 +114,7 @@ MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"  # Bedrock model
 python run_roast.py
 
 # Roast a specific user
-python run_roast.py --target "armanpopli"
+python run_roast.py --target "username"
 
 # List all league members
 python run_roast.py --list-users
@@ -125,9 +125,9 @@ python run_roast.py --list-users
 ### League Settings
 
 ```python
-LEAGUE_ID = "1263345992535638016"    # Your Sleeper league ID
+LEAGUE_ID = "123456789012345678"    # Your Sleeper league ID
 SEASON = "2025"                      # Current season
-TARGET_DISPLAY_NAME = "armanpopli"  # User to roast
+TARGET_DISPLAY_NAME = "username"     # User to roast
 ```
 
 ### AWS Settings
@@ -212,7 +212,7 @@ sleeper-fantasy-football-recommendation-agent/
 Armtard and Co Re-Mastered | 2025 Season
 
 📊 Team Snapshot
-Your Team: armanpopli | Record: 1-0 | Current Rank: #6
+Your Team: FantasyChamp | Record: 1-0 | Current Rank: #6
 
 Grade: C+
 
@@ -220,7 +220,7 @@ Your 1-0 record means you're mediocre, which is probably your ceiling.
 Your 145 points is above average, which is shocking given your decision-making. 
 Being ranked #6 means you're temporarily fooling people into thinking you know what you're doing.
 
-Your team name "armanpopli" is almost as disappointing as your performance this season...
+Your team name "FantasyChamp" is almost as disappointing as your performance this season...
 ```
 
 ## 🚨 Error Handling
