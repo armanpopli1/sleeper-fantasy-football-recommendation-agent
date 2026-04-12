@@ -4,10 +4,13 @@ The most savage fantasy football analyst ever created. This agent generates brut
 
 ## ✨ Features
 
+- **🌐 Streamlit Web App**: Beautiful web interface - no config files needed!
+- **🔑 Bring Your Own API Key**: Works with Anthropic Claude or OpenAI GPT-4
 - **Maximum Snark Mode**: No feelings are spared in the pursuit of truth
 - **Real-time Data**: Uses Sleeper API for up-to-date league information
 - **Web Search Integration**: Gets current player news and trends
-- **Beautiful HTML Reports**: Visually stunning roast reports with timestamps
+- **📊 Visual Roasts**: Markdown tables, stat comparisons, and blockquote burns
+- **Beautiful Reports**: Download as Markdown or HTML with styled tables
 - **Comprehensive Analysis**: 7 detailed sections covering every aspect of your fantasy failures
 - **Player Database**: Full NFL player name resolution (no more mysterious IDs)
 
@@ -23,23 +26,71 @@ The most savage fantasy football analyst ever created. This agent generates brut
 
 ## 🚀 Quick Start
 
-### 1. Prerequisites
+### Option 1: Streamlit Web App (Recommended)
 
-- Python 3.10+
-- AWS credentials configured for Bedrock
-- Access to Amazon Bedrock Claude models
+The easiest way to use the roast generator - no config files needed!
 
-### 2. Installation
+#### 1. Installation
 
 ```bash
 # Clone or download the project
 cd sleeper-fantasy-football-recommendation-agent
 
+# Create virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Configuration
+#### 2. Get an API Key
+
+Choose one:
+- **Anthropic Claude** (Recommended): Get key at [console.anthropic.com](https://console.anthropic.com)
+- **OpenAI GPT-4**: Get key at [platform.openai.com](https://platform.openai.com)
+
+#### 3. Find Your Sleeper League ID
+
+1. Go to your league in the Sleeper app or web
+2. The URL will look like: `https://sleeper.com/leagues/1263345992535638016`
+3. Copy the long number - that's your League ID!
+
+#### 4. Run the App
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The app will open in your browser at `http://localhost:8501`
+
+#### 5. Generate Your Roast
+
+1. Enter your API key in the sidebar
+2. Enter your Sleeper League ID
+3. Enter the target username (exact Sleeper display name)
+4. Click "Generate Roast" and wait 1-2 minutes
+5. Download as Markdown or HTML!
+
+---
+
+### Option 2: Command Line (Advanced)
+
+For users who prefer the CLI or have AWS Bedrock access.
+
+#### 1. Prerequisites
+
+- Python 3.10+
+- AWS credentials configured for Bedrock (or edit config.py for direct API)
+
+#### 2. Installation
+
+```bash
+cd sleeper-fantasy-football-recommendation-agent
+pip install -r requirements.txt
+```
+
+#### 3. Configuration
 
 Edit `config.py` with your league information:
 
@@ -51,12 +102,12 @@ SEASON = "2025"                          # Current season year
 # Target Configuration  
 TARGET_DISPLAY_NAME = "username_to_roast"  # Display name of victim
 
-# AWS Configuration
+# AWS Configuration (for CLI mode)
 AWS_REGION = "us-west-2"                 # Your AWS region
 MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"  # Bedrock model
 ```
 
-### 4. Run the Roast
+#### 4. Run the Roast
 
 ```bash
 # Generate roast for user in config
@@ -95,19 +146,45 @@ MAX_TRADE_SUGGESTIONS = 3           # Number of trade ideas
 WEB_SEARCH_RESULTS = 5             # Web search result limit
 ```
 
+## 💰 API Costs
+
+Using this tool with your own API key is very affordable:
+
+### Cost Per Roast Report
+- **Anthropic Claude Sonnet**: ~$0.15-0.30 per report
+- **OpenAI GPT-4o**: ~$0.30-0.60 per report
+
+### What's Included
+Each roast uses:
+- 10-20 tool calls to Sleeper API (free)
+- 5-10 web searches via DuckDuckGo (free)
+- 1 AI generation with ~100K input + 5K output tokens
+
+### Tips to Reduce Costs
+- Use Anthropic Claude (cheaper and better for roasts)
+- Run once per week instead of daily
+- Share generated reports instead of regenerating
+
+**Note**: If you deploy to Streamlit Cloud, each user provides their own API key, so you pay nothing for their usage!
+
+---
+
 ## 📁 Project Structure
 
 ```
 sleeper-fantasy-football-recommendation-agent/
+├── streamlit_app.py       # 🌐 Streamlit web application
 ├── config.py              # Configuration settings
-├── sleeper_tools.py        # Sleeper API integration tools
-├── web_tools.py           # Web search tools
-├── roast_agent.py         # Main roast agent logic
-├── run_roast.py           # Runner script
+├── sleeper_tools.py       # Sleeper API integration tools
+├── web_tools.py           # Web search tools (DuckDuckGo)
+├── roast_agent.py         # Main roast agent with AI logic
+├── run_roast.py           # CLI runner script (legacy)
 ├── report_template.html   # HTML template for reports
 ├── requirements.txt       # Python dependencies
+├── .streamlit/
+│   └── config.toml        # Streamlit theme configuration
 ├── reports/               # Generated reports (created automatically)
-└── README.md             # This file
+└── README.md              # This file
 ```
 
 ## 🛠️ How It Works
@@ -173,9 +250,68 @@ for user in $(python run_roast.py --list-users --names-only); do
 done
 ```
 
+## 🚀 Deploy to Streamlit Cloud (Free Hosting)
+
+Want to share your roast generator with the world? Deploy it for free on Streamlit Cloud!
+
+### Prerequisites
+- GitHub account
+- Your code pushed to a GitHub repository
+
+### Deployment Steps
+
+1. **Push your code to GitHub**
+   ```bash
+   git init
+   git add .
+   git commit -m "Add Fantasy Football Roast Generator"
+   git remote add origin https://github.com/yourusername/your-repo.git
+   git push -u origin main
+   ```
+
+2. **Sign up for Streamlit Cloud**
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Sign in with your GitHub account
+   - Click "New app"
+
+3. **Configure your app**
+   - Repository: Select your GitHub repo
+   - Branch: `main`
+   - Main file path: `sleeper-fantasy-football-recommendation-agent/streamlit_app.py`
+   - Click "Deploy"
+
+4. **Share your URL**
+   - Your app will be live at: `https://your-app-name.streamlit.app`
+   - Users provide their own API keys (you don't pay for their usage!)
+
+### Important Notes
+- **No secrets needed**: Users provide their own API keys through the web interface
+- **Free tier limits**: Streamlit Cloud free tier includes 1GB RAM and limited compute hours
+- **Cold starts**: App may take 30-60 seconds to wake up if inactive
+- **Public by default**: Anyone with the URL can access your app
+
+### Custom Domain (Optional)
+Want a custom domain like `roast.yourdomain.com`? See [Streamlit's custom domain guide](https://docs.streamlit.io/streamlit-community-cloud/get-started/deploy-an-app/custom-subdomains).
+
+---
+
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Streamlit Issues
+
+**"ModuleNotFoundError" in Streamlit Cloud**
+- Check that all dependencies are in `requirements.txt`
+- Streamlit Cloud uses Python 3.11 - ensure compatibility
+
+**"API key validation failed"**
+- Users must enter valid Anthropic or OpenAI API keys
+- Keys should start with `sk-ant-` (Anthropic) or `sk-` (OpenAI)
+
+**"League not found"**
+- Verify the League ID is correct (from Sleeper URL)
+- Ensure league is public or user has access
+
+### CLI Issues
 
 **"Failed to get league data"**
 - Check your `LEAGUE_ID` in config.py
