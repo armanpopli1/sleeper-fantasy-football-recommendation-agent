@@ -250,9 +250,9 @@ for user in $(python run_roast.py --list-users --names-only); do
 done
 ```
 
-## 🚀 Deploy to Streamlit Cloud (Free Hosting)
+## 🚀 Deploy to Render.com (Free Hosting - Recommended)
 
-Want to share your roast generator with the world? Deploy it for free on Streamlit Cloud!
+Deploy your roast generator for free with better memory limits than Streamlit Cloud!
 
 ### Prerequisites
 - GitHub account
@@ -260,38 +260,42 @@ Want to share your roast generator with the world? Deploy it for free on Streaml
 
 ### Deployment Steps
 
-1. **Push your code to GitHub**
+1. **Push your code to GitHub** (if not already done)
    ```bash
-   git init
    git add .
    git commit -m "Add Fantasy Football Roast Generator"
-   git remote add origin https://github.com/yourusername/your-repo.git
-   git push -u origin main
+   git push
    ```
 
-2. **Sign up for Streamlit Cloud**
-   - Go to [share.streamlit.io](https://share.streamlit.io)
-   - Sign in with your GitHub account
-   - Click "New app"
+2. **Sign up for Render.com**
+   - Go to [render.com](https://render.com)
+   - Sign up with your GitHub account
 
-3. **Configure your app**
-   - Repository: Select your GitHub repo
-   - Branch: `main`
-   - Main file path: `sleeper-fantasy-football-recommendation-agent/streamlit_app.py`
-   - Click "Deploy"
+3. **Create a new Web Service**
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Render will auto-detect the `render.yaml` configuration!
 
-4. **Share your URL**
-   - Your app will be live at: `https://your-app-name.streamlit.app`
+4. **Deploy!**
+   - Click "Create Web Service"
+   - Render will automatically:
+     - Install dependencies from `requirements.txt`
+     - Start your Streamlit app
+     - Provide a public URL
+
+5. **Share your URL**
+   - Your app will be live at: `https://fantasy-roast-generator.onrender.com`
    - Users provide their own API keys (you don't pay for their usage!)
 
 ### Important Notes
 - **No secrets needed**: Users provide their own API keys through the web interface
-- **Free tier limits**: Streamlit Cloud free tier includes 1GB RAM and limited compute hours
-- **Cold starts**: App may take 30-60 seconds to wake up if inactive
+- **Free tier**: 512MB RAM, plenty for this app
+- **Cold starts**: App sleeps after 15 min of inactivity, takes 30-60 sec to wake
 - **Public by default**: Anyone with the URL can access your app
+- **Auto-deploys**: Pushes to GitHub automatically redeploy the app
 
-### Custom Domain (Optional)
-Want a custom domain like `roast.yourdomain.com`? See [Streamlit's custom domain guide](https://docs.streamlit.io/streamlit-community-cloud/get-started/deploy-an-app/custom-subdomains).
+### Alternative: Streamlit Cloud
+If you prefer Streamlit Cloud, note that the heavy dependencies (strands-agents + boto3) may exceed the 1GB memory limit. Render.com handles these dependencies better.
 
 ---
 
